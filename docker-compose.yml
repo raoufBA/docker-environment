@@ -1,0 +1,97 @@
+version: '2'
+services:
+  php7:
+    build:
+      context: ./dockerfiles/php-fpm/php-7.4
+      dockerfile: Dockerfile
+    container_name: php7.4
+    volumes:
+      - /var/www/html:/var/www/html
+      - ./dockerfiles/php-fpm/php.ini:/usr/local/etc/php/php.ini
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.2
+    depends_on:
+      - mysql
+      - mailcatcher
+
+  php5:
+    build:
+      context: ./dockerfiles/php-fpm/php5-6
+      dockerfile: Dockerfile
+    container_name: php5
+    volumes:
+      - /var/www/html:/var/www/html
+      - ./dockerfiles/php-fpm/php.ini:/usr/local/etc/php/php.ini
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.5
+    depends_on:
+      - mysql
+  web:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - /var/www/html:/var/www/html
+      - ./dockerfiles/nginx:/etc/nginx/conf.d
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.3
+    depends_on:
+      - php5
+      - php7
+  mysql:
+    container_name: mysql5.7
+    image: mysql:5.7
+    ports:
+      - "3307:3306"
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.4
+    environment:
+      MYSQL_ROOT_PASSWORD: oceanys
+      MYSQL_USER: raouf
+      MYSQL_PASSWORD: raouf
+      MYSQL_DATABASE: symfony
+
+  mailcatcher:
+    image: schickling/mailcatcher
+    container_name: mailcatcher
+    ports:
+      - "1080:1080"
+      - "1025:1025"
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.7
+
+#  node:
+#    container_name: node
+#    build:
+#      context: ./dockerfiles/node
+#      dockerfile: Dockerfile
+#    volumes:
+#      - '.:/app'
+#      - '/app/node_modules'
+#    ports:
+#      - 3001:3000
+#    environment:
+#      - CHOKIDAR_USEPOLLING=true
+
+#  sftp:
+#    image: atmoz/sftp
+#    container_name: sftp
+#    volumes:
+#      - <host-dir>/upload:/home/foo/upload
+#    ports:
+#      - "2222:22"
+#    command: foo:pass:1001
+
+networks:
+  vpcbr:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.5.0.0/16
+          gateway: 10.5.0.1
