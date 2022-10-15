@@ -1,8 +1,9 @@
-FROM php:7.4-fpm-alpine
+FROM php:7.4.32-fpm-alpine
 
 RUN apk update \
     && apk add  --no-cache git mysql-client curl libmcrypt libmcrypt-dev openssh-client icu-dev \
     libxml2-dev freetype-dev libpng-dev libjpeg-turbo-dev g++ make autoconf \
+    libwebp-dev libjpeg-turbo-dev libpng-dev libxpm-dev freetype-dev \
     && docker-php-source extract \
     && pecl install xdebug redis \
     && docker-php-ext-enable xdebug redis \
@@ -19,11 +20,9 @@ RUN apk update \
 #    && rm -rf /tmp/* \
 
 # Setup GD extension
-RUN docker-php-ext-configure gd --with-gd --with-webp-dir --with-jpeg-dir \
-    --with-png-dir --with-zlib-dir --with-xpm-dir --with-freetype-dir \
-    --enable-gd-native-ttf
-
-RUN docker-php-ext-install gd opcache
+RUN set -eux; \
+ docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg --with-webp; \
+ docker-php-ext-install -j$(nproc) gd opcache
 
 copy opcache.ini /usr/local/etc/php/conf.d
 

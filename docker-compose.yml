@@ -6,13 +6,13 @@ services:
       dockerfile: Dockerfile
     container_name: php7.4
     volumes:
-      - /var/www/html:/var/www/html
+      - /var/www:/var/www/html
       - ./dockerfiles/php-fpm/php.ini:/usr/local/etc/php/php.ini
     networks:
       vpcbr:
         ipv4_address: 10.5.0.2
     depends_on:
-      - mysql
+      - mysql8
       - mailcatcher
 
   php5:
@@ -21,35 +21,57 @@ services:
       dockerfile: Dockerfile
     container_name: php5
     volumes:
-      - /var/www/html:/var/www/html
+      - /var/www:/var/www/html
       - ./dockerfiles/php-fpm/php.ini:/usr/local/etc/php/php.ini
     networks:
       vpcbr:
-        ipv4_address: 10.5.0.5
+        ipv4_address: 10.5.0.3
     depends_on:
-      - mysql
+      - mysql5
+
   web:
     image: nginx:latest
     container_name: nginx
     ports:
       - "80:80"
     volumes:
-      - /var/www/html:/var/www/html
+      - /var/www:/var/www/html
       - ./dockerfiles/nginx:/etc/nginx/conf.d
     networks:
       vpcbr:
-        ipv4_address: 10.5.0.3
+        ipv4_address: 10.5.0.4
     depends_on:
-      - php5
+#      - php5
       - php7
-  mysql:
+
+  mysql5:
     container_name: mysql5.7
     image: mysql:5.7
     ports:
       - "3307:3306"
+    volumes:
+      - ./dockerfiles/mysql/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
+      - /var/opt/docker/mysql/5.7/lib:/var/lib/mysql
     networks:
       vpcbr:
-        ipv4_address: 10.5.0.4
+        ipv4_address: 10.5.0.5
+    environment:
+      MYSQL_ROOT_PASSWORD: oceanys
+      MYSQL_USER: raouf
+      MYSQL_PASSWORD: raouf
+      MYSQL_DATABASE: symfony
+
+  mysql8:
+    container_name: mysql8.0
+    image: mysql:8.0
+    ports:
+      - "3308:3306"
+    volumes:
+      - ./dockerfiles/mysql/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
+      - /var/opt/docker/mysql/8.0/lib:/var/lib/mysql
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.6
     environment:
       MYSQL_ROOT_PASSWORD: oceanys
       MYSQL_USER: raouf
