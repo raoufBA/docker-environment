@@ -1,33 +1,33 @@
 version: '2'
 services:
-  php7:
-    build:
-      context: ./dockerfiles/php-fpm/php-7.4
-      dockerfile: Dockerfile
-    container_name: php7.4
-    volumes:
-      - /var/www:/var/www/html
-      - ./dockerfiles/php-fpm/php.ini:/usr/local/etc/php/php.ini
-    networks:
-      vpcbr:
-        ipv4_address: 10.5.0.2
-    depends_on:
-      - mysql8
-      - mailcatcher
+#  php7:
+#    build:
+#      context: ./dockerfiles/php-fpm/php-7.4
+#      dockerfile: Dockerfile
+#    container_name: php7.4
+#    volumes:
+#      - /var/www/html:/var/www/html
+#      - ./dockerfiles/php-fpm/php.ini:/usr/local/etc/php/php.ini
+#    networks:
+#      vpcbr:
+#        ipv4_address: 10.5.0.2
+#    depends_on:
+#      - mysql5.7
+#      - mailcatcher
 
-  php5:
-    build:
-      context: ./dockerfiles/php-fpm/php5-6
-      dockerfile: Dockerfile
-    container_name: php5
-    volumes:
-      - /var/www:/var/www/html
-      - ./dockerfiles/php-fpm/php.ini:/usr/local/etc/php/php.ini
-    networks:
-      vpcbr:
-        ipv4_address: 10.5.0.3
-    depends_on:
-      - mysql5
+#  php5:
+#    build:
+#      context: ./dockerfiles/php-fpm/php5-6
+#      dockerfile: Dockerfile
+#    container_name: php5
+#    volumes:
+#      - /var/www:/var/www/html
+#      - ./dockerfiles/php-fpm/php.ini:/usr/local/etc/php/php.ini
+#    networks:
+#      vpcbr:
+#        ipv4_address: 10.5.0.3
+#    depends_on:
+#      - mysql5
 
   web:
     image: nginx:latest
@@ -35,23 +35,22 @@ services:
     ports:
       - "80:80"
     volumes:
-      - /var/www:/var/www/html
+      - /var/www/html:/var/www/html
       - ./dockerfiles/nginx:/etc/nginx/conf.d
     networks:
       vpcbr:
         ipv4_address: 10.5.0.4
     depends_on:
 #      - php5
-      - php7
+      - php8.1
 
-  mysql5:
+  mysql5.7:
     container_name: mysql5.7
     image: mysql:5.7
     ports:
-      - "3307:3306"
+      - "3306:3306"
     volumes:
-      - ./dockerfiles/mysql/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
-      - /var/opt/docker/mysql/5.7/lib:/var/lib/mysql
+      - ./dockerfiles/mysql/lib:/var/lib/mysql
     networks:
       vpcbr:
         ipv4_address: 10.5.0.5
@@ -61,22 +60,22 @@ services:
       MYSQL_PASSWORD: raouf
       MYSQL_DATABASE: symfony
 
-  mysql8:
-    container_name: mysql8.0
-    image: mysql:8.0
-    ports:
-      - "3308:3306"
-    volumes:
-      - ./dockerfiles/mysql/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
-      - /var/opt/docker/mysql/8.0/lib:/var/lib/mysql
-    networks:
-      vpcbr:
-        ipv4_address: 10.5.0.6
-    environment:
-      MYSQL_ROOT_PASSWORD: oceanys
-      MYSQL_USER: raouf
-      MYSQL_PASSWORD: raouf
-      MYSQL_DATABASE: symfony
+#  mysql8:
+#    container_name: mysql8.0
+#    image: mysql:8.0
+#    ports:
+#      - "3308:3306"
+#    volumes:
+#      - ./dockerfiles/mysql/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
+#      - /var/opt/docker/mysql/8.0/lib:/var/lib/mysql
+#    networks:
+#      vpcbr:
+#        ipv4_address: 10.5.0.6
+#    environment:
+#      MYSQL_ROOT_PASSWORD: oceanys
+#      MYSQL_USER: raouf
+#      MYSQL_PASSWORD: raouf
+#      MYSQL_DATABASE: symfony
 
   mailcatcher:
     image: schickling/mailcatcher
@@ -87,6 +86,28 @@ services:
     networks:
       vpcbr:
         ipv4_address: 10.5.0.7
+  php8.1:
+    build:
+      context: ./dockerfiles/php-fpm/php8.1
+      dockerfile: Dockerfile
+    container_name: php8.1
+    environment:
+      - "ENV_SUBSTITUTION_ENABLE=true"
+      - "PHP_MEMORY_LIMIT=512M"
+      - "PHP_DISPLAY_ERRORS=On"
+      - "PHP_FPM_LISTEN=9000"
+      - "PHP_SESSION_GC_MAXLIFETIME=7200"
+    expose:
+      - "9000"
+    volumes:
+      - /var/www/html:/var/www/html
+      - ./dockerfiles/php-fpm/php8.1/php.ini:/var/data/php-fpm/default-php.tmpl.ini
+    networks:
+      vpcbr:
+        ipv4_address: 10.5.0.8
+    depends_on:
+      - mysql5.7
+      - mailcatcher
 
 #  node:
 #    container_name: node
