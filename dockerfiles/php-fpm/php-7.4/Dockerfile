@@ -1,16 +1,15 @@
-FROM php:7.4.32-fpm-alpine
+FROM php:7.4-fpm-alpine
 
 RUN apk update \
     && apk add  --no-cache git mysql-client curl libmcrypt libmcrypt-dev openssh-client icu-dev \
     libxml2-dev freetype-dev libpng-dev libjpeg-turbo-dev g++ make autoconf \
-    libwebp-dev libjpeg-turbo-dev libpng-dev libxpm-dev freetype-dev \
     && docker-php-source extract \
-    && pecl install xdebug redis \
-    && docker-php-ext-enable xdebug redis \
+    && pecl install opcache xdebug redis apcu \
+    && docker-php-ext-enable opcache xdebug redis apcu \
     && docker-php-source delete \
     && apk add --no-cache zip libzip-dev \
     && docker-php-ext-configure zip \
-    && docker-php-ext-install pdo_mysql soap intl zip \
+    && docker-php-ext-install pdo_mysql soap intl mysqli gd exif zip bcmath \
     && echo "xdebug.remote_enable=on" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
     && echo "xdebug.remote_autostart=off" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
     && echo "xdebug.remote_port=10000" >> /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini \
@@ -20,9 +19,11 @@ RUN apk update \
 #    && rm -rf /tmp/* \
 
 # Setup GD extension
-RUN set -eux; \
- docker-php-ext-configure gd --enable-gd --with-freetype --with-jpeg --with-webp; \
- docker-php-ext-install -j$(nproc) gd opcache
+RUN docker-php-ext-configure gd --with-gd --with-webp-dir --with-jpeg-dir \
+    --with-png-dir --with-zlib-dir --with-xpm-dir --with-freetype-dir \
+    --enable-gd-native-ttf
+
+RUN docker-php-ext-install gd opcache
 
 copy opcache.ini /usr/local/etc/php/conf.d
 

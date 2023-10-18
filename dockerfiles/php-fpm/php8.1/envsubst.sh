@@ -2,7 +2,7 @@
 
 set -e
 
-CWD=/var/www/html/tinquin/docker-environment/dockerfiles/php-fpm/php8.1
+CWD=/var/www/html/docker/dockerfiles/php-fpm/php8.1
 
 # 1. PHP-FPM default settings (php-fpm.conf)
 XERROR_LOG=/proc/self/fd/2

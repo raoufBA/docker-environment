@@ -1,19 +1,43 @@
 version: '2'
 services:
-#  php7:
+#  php8:
 #    build:
-#      context: ./dockerfiles/php-fpm/php-7.4
+#      context: ./dockerfiles/php-fpm/php8.1
 #      dockerfile: Dockerfile
-#    container_name: php7.4
+##    image: joseluisq/php-fpm:8.1.4
+#    container_name: php8.1
+#    environment:
+#      - "ENV_SUBSTITUTION_ENABLE=true"
+#      - "PHP_MEMORY_LIMIT=512M"
+#      - "PHP_DISPLAY_ERRORS=On"
+#      - "PHP_FPM_LISTEN=9000"
+#      - "PHP_SESSION_GC_MAXLIFETIME=7200"
+#    expose:
+#      - "9000"
 #    volumes:
 #      - /var/www/html:/var/www/html
-#      - ./dockerfiles/php-fpm/php.ini:/usr/local/etc/php/php.ini
+#      - ./dockerfiles/php-fpm/php8.1/php.ini:/var/data/php-fpm/default-php.tmpl.ini
 #    networks:
 #      vpcbr:
-#        ipv4_address: 10.5.0.2
+#        ipv4_address: 20.5.0.8
 #    depends_on:
-#      - mysql5.7
+#      - mysql
 #      - mailcatcher
+  php7:
+    build:
+      context: ./dockerfiles/php-fpm/php-7.4
+      dockerfile: Dockerfile
+    container_name: php7.4
+    volumes:
+      - /var/www/html:/var/www/html
+      - ./dockerfiles/php-fpm/php-7.4/php.ini:/usr/local/etc/php/php.ini
+      - ./dockerfiles/php-fpm/php-7.4/xdebug.ini:/usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
+    networks:
+      vpcbr:
+        ipv4_address: 20.5.0.2
+    depends_on:
+      - mysql
+      - maildev
 
 #  php5:
 #    build:
@@ -21,15 +45,14 @@ services:
 #      dockerfile: Dockerfile
 #    container_name: php5
 #    volumes:
-#      - /var/www:/var/www/html
+#      - /var/www/html:/var/www/html
 #      - ./dockerfiles/php-fpm/php.ini:/usr/local/etc/php/php.ini
 #    networks:
 #      vpcbr:
-#        ipv4_address: 10.5.0.3
+#        ipv4_address: 20.5.0.5
 #    depends_on:
-#      - mysql5
-
-  web:
+#      - mysql
+  nginx:
     image: nginx:latest
     container_name: nginx
     ports:
@@ -39,75 +62,46 @@ services:
       - ./dockerfiles/nginx:/etc/nginx/conf.d
     networks:
       vpcbr:
-        ipv4_address: 10.5.0.4
+        ipv4_address: 20.5.0.3
     depends_on:
-#      - php5
-      - php8.1
-
-  mysql5.7:
-    container_name: mysql5.7
+#      - php8
+      - php7
+  mysql:
+    container_name: mysql5
     image: mysql:5.7
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - ./dockerfiles/mysql/lib:/var/lib/mysql
     networks:
       vpcbr:
-        ipv4_address: 10.5.0.5
+        ipv4_address: 20.5.0.4
     environment:
       MYSQL_ROOT_PASSWORD: oceanys
       MYSQL_USER: raouf
       MYSQL_PASSWORD: raouf
       MYSQL_DATABASE: symfony
 
-#  mysql8:
-#    container_name: mysql8.0
-#    image: mysql:8.0
-#    ports:
-#      - "3308:3306"
-#    volumes:
-#      - ./dockerfiles/mysql/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf
-#      - /var/opt/docker/mysql/8.0/lib:/var/lib/mysql
-#    networks:
-#      vpcbr:
-#        ipv4_address: 10.5.0.6
-#    environment:
-#      MYSQL_ROOT_PASSWORD: oceanys
-#      MYSQL_USER: raouf
-#      MYSQL_PASSWORD: raouf
-#      MYSQL_DATABASE: symfony
-
-  mailcatcher:
-    image: schickling/mailcatcher
-    container_name: mailcatcher
+  maildev:
+    image: maildev/maildev:${MAILDEV_VERSION:-latest}
+    container_name: "maildev"
+    restart: unless-stopped
+    command: bin/maildev --web 1080 --smtp 1025 --hide-extensions STARTTLS
     ports:
       - "1080:1080"
-      - "1025:1025"
     networks:
       vpcbr:
-        ipv4_address: 10.5.0.7
-  php8.1:
-    build:
-      context: ./dockerfiles/php-fpm/php8.1
-      dockerfile: Dockerfile
-    container_name: php8.1
-    environment:
-      - "ENV_SUBSTITUTION_ENABLE=true"
-      - "PHP_MEMORY_LIMIT=512M"
-      - "PHP_DISPLAY_ERRORS=On"
-      - "PHP_FPM_LISTEN=9000"
-      - "PHP_SESSION_GC_MAXLIFETIME=7200"
-    expose:
-      - "9000"
-    volumes:
-      - /var/www/html:/var/www/html
-      - ./dockerfiles/php-fpm/php8.1/php.ini:/var/data/php-fpm/default-php.tmpl.ini
-    networks:
-      vpcbr:
-        ipv4_address: 10.5.0.8
-    depends_on:
-      - mysql5.7
-      - mailcatcher
+        ipv4_address: 20.5.0.7
+
+#  mailcatcher:
+#    image: schickling/mailcatcher
+#    container_name: mailcatcher
+#    ports:
+#      - "1080:1080"
+#      - "1025:1025"
+#    networks:
+#      vpcbr:
+#        ipv4_address: 20.5.0.7
 
 #  node:
 #    container_name: node
@@ -122,19 +116,10 @@ services:
 #    environment:
 #      - CHOKIDAR_USEPOLLING=true
 
-#  sftp:
-#    image: atmoz/sftp
-#    container_name: sftp
-#    volumes:
-#      - <host-dir>/upload:/home/foo/upload
-#    ports:
-#      - "2222:22"
-#    command: foo:pass:1001
-
 networks:
   vpcbr:
     driver: bridge
     ipam:
       config:
-        - subnet: 10.5.0.0/16
-          gateway: 10.5.0.1
+        - subnet: 20.5.0.0/16
+          gateway: 20.5.0.1
