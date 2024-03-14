@@ -1,77 +1,74 @@
-FROM php:5.6-fpm-alpine
-MAINTAINER qiang <zhiqiangvip999@gmail.com>
+FROM php:5.6-fpm
 
-#更改国内镜像源
-RUN echo -e "https://mirrors.ustc.edu.cn/alpine/v3.7/main\nhttps://mirrors.ustc.edu.cn/alpine/v3.7/community\n" > /etc/apk/repositories
+ENV TZ=Europe/Paris
+ENV COMPOSER_ALLOW_SUPERUSER=1
+ENV DEBIAN_FRONTEND=noninteractive
 
-#安装拓展
-RUN apk update && apk add --no-cache \
-            $PHPIZE_DEPS \
-	    freetype \
-	    libjpeg-turbo \
-	    freetype-dev \
-	    libjpeg-turbo-dev \
-            libpng \
-            libpng-dev \
-            libxml2 \
-            libxml2-dev \
-            libxslt \
-            libxslt-dev \
-            icu \
-            icu-dev \
-            libmcrypt \
-            libmcrypt-dev \
-	    libc-dev \
-	    bash \
-	    git \
-	    re2c \
-	    gcc \
-	    g++ \
-	    make \
-	    autoconf \
-	    openldap \
-	    openldap-dev \
-	    && pecl install xdebug-2.5.0 \
-#	    && pecl install memcached-2.2.0 \
-	    && pecl install redis-5.0.2 \
-	    && docker-php-ext-enable xdebug \
-#	    && docker-php-ext-enable memcache \
-	    && docker-php-ext-enable redis
+RUN addgroup dockergroup
+RUN adduser --ingroup dockergroup --uid 501 dockeruser --gecos "" --disabled-password
+
+RUN ln -sf /usr/share/zoneinfo/$TZ /etc/localtime
+RUN mkdir -p mkdir -p /usr/share/man/man1
 
 
-RUN  docker-php-ext-configure gd \
-	    --with-gd \
-	    --with-freetype-dir=/usr/include/ \
-	    --with-png-dir=/usr/include/ \
-	    --with-jpeg-dir=/usr/include/ && \
-	NPROC=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || 1) \
-	&& docker-php-ext-install -j${NPROC} gd \
-	&& docker-php-ext-install mysqli \
-	&& docker-php-ext-install mysql \
-	&& docker-php-ext-install pdo_mysql \
-	&& docker-php-ext-install zip \
-	&& docker-php-ext-install soap \
-	&& docker-php-ext-install xsl \
-	&& docker-php-ext-install intl \
-	&& docker-php-ext-install bcmath \
-	&& docker-php-ext-install mcrypt \
-	&& docker-php-ext-install opcache \
-	&& docker-php-ext-install ldap
+COPY php.ini /usr/local/etc/php/php.ini
+#COPY docker-secret-entrypoint /usr/local/bin/
 
-#安装PHP COMPOSER 并设置中国镜像源
-RUN curl -sS https://getcomposer.org/installer | php \
-    && mv composer.phar /usr/local/bin/composer \
-    && composer config -g repo.packagist composer https://packagist.phpcomposer.com
-#安装phalcon拓展
-RUN mkdir /tmp/phalcon-src
-WORKDIR /tmp/phalcon-src
-RUN git clone -b 1.3.4 https://github.com/phalcon/cphalcon.git \
-    && cd cphalcon/build \
-    && ./install \
-    && docker-php-ext-enable phalcon
-#删除暂时用不到的依赖包   节省空间
-RUN apk del autoconf dpkg-dev dpkg bash git file g++ gcc libc-dev make pkgconf re2c
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive && apt-get install --no-install-recommends -y  \
+        locales \
+        $PHPIZE_DEPS libmcrypt-dev libmemcached-dev \
+        libsqlite3-dev mysql-client \
+        curl git libicu-dev wget libltdl7\
+        libc-client-dev \
+        libxml2 libxml2-dev \
+        vim \
+        libfreetype6-dev libjpeg62-turbo-dev libpng-dev \
+        libmagickwand-dev \
+        openjdk-8-jre ruby ruby-dev libsasl2-dev \
+        openssh-client \
+        libzip-dev unzip \
+        libsmbclient-dev \
+        libssh2-1-dev libssh2-1 \
+        samba-client smbclient \
+        libyaml-dev zlib1g-dev \
+        && docker-php-ext-install bcmath gd intl mbstring opcache pdo pdo_mysql zip \
+        && gem install sass --no-rdoc --no-ri --no-prerelease && gem install compass --no-rdoc --no-ri --no-prerelease
 
-#修复官方镜像中iconv bug
-RUN apk add --no-cache --repository http://dl-3.alpinelinux.org/alpine/edge/testing gnu-libiconv
-ENV LD_PRELOAD /usr/lib/preloadable_libiconv.so php
+# Set locales
+RUN dpkg-reconfigure locales
+RUN echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen \
+&& echo "fr_FR.UTF-8 UTF-8" >> /etc/locale.gen \
+&& echo "en_GB.UTF-8 UTF-8" >> /etc/locale.gen \
+&& echo "it_IT.UTF-8 UTF-8" >> /etc/locale.gen
+
+WORKDIR /var/www/
+
+RUN docker-php-ext-configure intl \
+    && docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/
+
+RUN docker-php-ext-install bcmath gd intl mbstring mcrypt opcache pcntl pdo pdo_mysql soap zip
+RUN pecl install ssh2-0.13 apcu-4.0.11 memcached-2.2.0 imagick-3.4.4 yaml-1.3.1 redis-5.0.2 xdebug-2.5.5 && docker-php-ext-enable apcu mcrypt ssh2 xdebug
+
+RUN apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $PHPIZE_DEPS \
+    && rm -rf /var/lib/apt/lists/*
+
+# Conf libs
+RUN { \
+        echo 'opcache.memory_consumption=1024'; \
+        echo 'opcache.interned_strings_buffer=32'; \
+        echo 'opcache.max_accelerated_files=49771'; \
+        echo 'opcache.max_file_size=0' ; \
+        echo 'opcache.revalidate_freq=2'; \
+        echo 'opcache.fast_shutdown=1'; \
+        echo 'opcache.enable_cli=1'; \
+    } > /usr/local/etc/php/conf.d/opcache-recommended.ini
+
+# Composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+
+CMD ["php-fpm", "-F"]
+
+WORKDIR /var/www/html
+
+EXPOSE 9000

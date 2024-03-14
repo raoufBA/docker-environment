@@ -3,10 +3,10 @@
 #ARG COMPOSER_VERSION="2.3.5"
 #FROM composer:${COMPOSER_VERSION} as composer
 
-FROM php:8.1.5-fpm-alpine3.15
+FROM php:8.0.30-fpm-alpine3.16
 
 LABEL Maintainer="Jose Quintana <git.io/joseluisq>" \
-    Description="PHP-FPM v8.1 with essential extensions on top of Alpine Linux."
+    Description="PHP-FPM v8.0 with essential extensions on top of Alpine Linux."
 
 # Swoole - https://github.com/swoole/swoole-src
 ARG SWOOLE_VERSION="4.8.9"
@@ -296,7 +296,7 @@ RUN set -eux \
 # Perform PHP-FPM testing
     && echo "Performing PHP-FPM tests..." \
     && echo "date.timezone=UTC" > /usr/local/etc/php/php.ini \
-    && php -v | grep -oE 'PHP\s[.0-9]+' | grep -oE '[.0-9]+' | grep '^8.1' \
+    && php -v | grep -oE 'PHP\s[.0-9]+' | grep -oE '[.0-9]+' | grep '^8.0' \
     && /usr/local/sbin/php-fpm --test \
     && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
 \
