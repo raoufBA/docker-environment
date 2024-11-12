@@ -1,11 +1,33 @@
 version: '2'
 services:
-  php8.0:
-    container_name: php8.0
+#  php8.0:
+#    container_name: php8.0
+#    build:
+#      context: ./dockerfiles/php-fpm/php8.0
+#      dockerfile: Dockerfile
+#    #    image: joseluisq/php-fpm:8.1.4
+#    environment:
+#      - "ENV_SUBSTITUTION_ENABLE=true"
+#      - "PHP_MEMORY_LIMIT=512M"
+#      - "PHP_DISPLAY_ERRORS=On"
+#      - "PHP_FPM_LISTEN=9000"
+#      - "PHP_SESSION_GC_MAXLIFETIME=7200"
+#    expose:
+#      - "9000"
+#    volumes:
+#      - /var/www/html:/var/www/html
+#      - ./dockerfiles/php-fpm/php8.0/php.ini:/var/data/php-fpm/default-php.tmpl.ini
+#    networks:
+#      my_external_network:
+#        ipv4_address: 20.5.0.9
+#    depends_on:
+#      - mysql
+#      - maildev
+  php8.2:
+    container_name: php8.2
     build:
-      context: ./dockerfiles/php-fpm/php8.0
+      context: ./dockerfiles/php-fpm/php8.2
       dockerfile: Dockerfile
-    #    image: joseluisq/php-fpm:8.1.4
     environment:
       - "ENV_SUBSTITUTION_ENABLE=true"
       - "PHP_MEMORY_LIMIT=512M"
@@ -14,35 +36,13 @@ services:
       - "PHP_SESSION_GC_MAXLIFETIME=7200"
     expose:
       - "9000"
+    restart: always
     volumes:
       - /var/www/html:/var/www/html
-      - ./dockerfiles/php-fpm/php8.0/php.ini:/var/data/php-fpm/default-php.tmpl.ini
+      - ./dockerfiles/php-fpm/php8.2/php.ini:/var/data/php-fpm/default-php.tmpl.ini
     networks:
-      vpcbr:
-        ipv4_address: 20.5.0.9
-    depends_on:
-      - mysql
-      - maildev
-  php8.1:
-    container_name: php8.1
-    build:
-      context: ./dockerfiles/php-fpm/php8.1
-      dockerfile: Dockerfile
-    #    image: joseluisq/php-fpm:8.1.4
-    environment:
-      - "ENV_SUBSTITUTION_ENABLE=true"
-      - "PHP_MEMORY_LIMIT=512M"
-      - "PHP_DISPLAY_ERRORS=On"
-      - "PHP_FPM_LISTEN=9000"
-      - "PHP_SESSION_GC_MAXLIFETIME=7200"
-    expose:
-      - "9000"
-    volumes:
-      - /var/www/html:/var/www/html
-      - ./dockerfiles/php-fpm/php8.1/php.ini:/var/data/php-fpm/default-php.tmpl.ini
-    networks:
-      vpcbr:
-        ipv4_address: 20.5.0.8
+      my_external_network:
+        ipv4_address: 172.19.0.6
     depends_on:
       - mysql
       - maildev
@@ -51,54 +51,61 @@ services:
       context: ./dockerfiles/php-fpm/php-7.4
       dockerfile: Dockerfile
     container_name: php7.4
+    restart: always
     volumes:
       - /var/www/html:/var/www/html
       - ./dockerfiles/php-fpm/php-7.4/php.ini:/usr/local/etc/php/php.ini
 #      - ./dockerfiles/php-fpm/php-7.4/xdebug.ini:/usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
     networks:
-      vpcbr:
-        ipv4_address: 20.5.0.2
+      my_external_network:
+        ipv4_address: 172.19.0.9
     depends_on:
       - mysql
       - maildev
-
-#  php5:
-#    build:
-#      context: ./dockerfiles/php-fpm/php5-6
-#      dockerfile: Dockerfile
-#    container_name: php5
-#    volumes:
-#      - /var/www/html:/var/www/html
-#      - ./dockerfiles/php-fpm/php.ini:/usr/local/etc/php/php.ini
-#    networks:
-#      vpcbr:
-#        ipv4_address: 20.5.0.5
-#    depends_on:
-#      - mysql
+#
+##  php5:
+##    build:
+##      context: ./dockerfiles/php-fpm/php5-6
+##      dockerfile: Dockerfile
+##    container_name: php5
+##    volumes:
+##      - /var/www/html:/var/www/html
+##      - ./dockerfiles/php-fpm/php.ini:/usr/local/etc/php/php.ini
+##    networks:
+##      vpcbr:
+##        ipv4_address: 20.5.0.5
+##    depends_on:
+##      - mysql
   nginx:
     image: nginx:latest
     container_name: nginx
+    restart: always
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - /var/www/html:/var/www/html
       - ./dockerfiles/nginx:/etc/nginx/conf.d
+      - ./dockerfiles/nginx/htpasswd/:/etc/nginx/htpasswd
+      - /var/www/html/letsencrypt/certbot/conf:/etc/nginx/ssl/:ro
     networks:
-      vpcbr:
-        ipv4_address: 20.5.0.3
+      my_external_network:
+        ipv4_address: 172.19.0.5
     depends_on:
-      - php8.1
+      - php8.2
       - php7
+
   mysql:
     container_name: mysql5
     image: mysql:5.7
+    restart: always
     ports:
       - "3307:3306"
     volumes:
-      - ./dockerfiles/mysql/lib:/var/lib/mysql
+      - ./dockerfiles/mysql5/lib:/var/lib/mysql
     networks:
-      vpcbr:
-        ipv4_address: 20.5.0.4
+      my_external_network:
+        ipv4_address: 172.19.0.7
     environment:
       MYSQL_ROOT_PASSWORD: oceanys
       MYSQL_USER: raouf
@@ -108,13 +115,13 @@ services:
   maildev:
     image: maildev/maildev:${MAILDEV_VERSION:-latest}
     container_name: "maildev"
-    restart: unless-stopped
+    restart: always
     command: bin/maildev --web 1080 --smtp 1025 --hide-extensions STARTTLS
     ports:
       - "1080:1080"
     networks:
-      vpcbr:
-        ipv4_address: 20.5.0.7
+      my_external_network:
+        ipv4_address: 172.19.0.8
 
 #  mailcatcher:
 #    image: schickling/mailcatcher
@@ -138,11 +145,13 @@ services:
 #      - 3001:3000
 #    environment:
 #      - CHOKIDAR_USEPOLLING=true
-
 networks:
-  vpcbr:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 20.5.0.0/16
-          gateway: 20.5.0.1
+  my_external_network:
+    external: true
+#networks:
+#  vpcbr:
+#    driver: bridge
+#    ipam:
+#      config:
+#        - subnet: 20.5.0.0/16
+#          gateway: 20.5.0.1

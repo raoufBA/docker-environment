@@ -1,10 +1,11 @@
 FROM php:7.4-fpm-alpine
-
+# xdebug with VSCODE
+ENV XDEBUG_VERSION=3.1.4
 RUN apk update \
     && apk add  --no-cache git mysql-client curl libmcrypt libmcrypt-dev openssh-client icu-dev \
     libxml2-dev freetype-dev libpng-dev libjpeg-turbo-dev g++ make autoconf \
     && docker-php-source extract \
-    && pecl install opcache xdebug redis apcu \
+    && pecl install opcache xdebug-${XDEBUG_VERSION} redis apcu \
     && docker-php-ext-enable opcache xdebug redis apcu \
     && docker-php-source delete \
     && apk add --no-cache zip libzip-dev \
