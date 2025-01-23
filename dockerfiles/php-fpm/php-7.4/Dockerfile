@@ -1,8 +1,17 @@
+# Étape 1 : Récupérer wkhtmltopdf depuis une image existante
+FROM aantonw/alpine-wkhtmltopdf-patched-qt as wkhtmltopdf_image
+# Étape 2 : Construire votre image principale
 FROM php:7.4-fpm-alpine
+# Copier le binaire wkhtmltopdf depuis l'étape précédente
+COPY --from=wkhtmltopdf_image /bin/wkhtmltopdf /usr/local/bin/wkhtmltopdf
+
 # xdebug with VSCODE
 ENV XDEBUG_VERSION=3.1.4
+
 RUN apk update \
     && apk add  --no-cache git mysql-client curl libmcrypt libmcrypt-dev openssh-client icu-dev \
+    fontconfig freetype libx11 libxrender libxext ca-certificates ttf-dejavu ttf-droid ttf-freefont \
+    ttf-liberation glib gobject-introspection \
     libxml2-dev freetype-dev libpng-dev libjpeg-turbo-dev g++ make autoconf \
     && docker-php-source extract \
     && pecl install opcache xdebug-${XDEBUG_VERSION} redis apcu \
